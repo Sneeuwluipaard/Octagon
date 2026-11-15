@@ -49,9 +49,7 @@ class BookResponse(BaseModel):
     description: str | None = None
     price: float
     url: str | None = None
-    # В модели атрибут называется `category`, а в API по заданию — `category_id`.
-    # validation_alias читает obj.category при from_attributes=True,
-    # а на выходе поле сериализуется как category_id (по имени поля).
+    # В модели атрибут называется `category`, в API — `category_id`.
     category_id: int | None = Field(default=None, validation_alias="category")
 
     model_config = ConfigDict(from_attributes=True)
