@@ -1,39 +1,30 @@
-from app.db.db import SessionLocal
-from app.db import crud
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+from app.api import books, categories
+from app.db.db import init_db
 
 
-def display_catalog():
-    """Читает категории и книги из БД и выводит их на экран."""
-    db = SessionLocal()
-    try:
-        categories = crud.get_categories(db)
-        if not categories:
-            print("Каталог пуст. Сначала запустите python -m app.init_db")
-            return
-
-        print("=" * 50)
-        print("КАТАЛОГ КНИГ ИЗ БАЗЫ ДАННЫХ POSTGRESQL")
-        print("=" * 50)
-
-        for category in categories:
-            print(f"\n[Категория #{category.id}]: {category.title}")
-            print("-" * 50)
-
-            books = crud.get_books_by_category(db, category_id=category.id)
-            if not books:
-                print("  В этой категории пока нет книг.")
-                continue
-
-            for book in books:
-                print(f"  * {book.title} (ID: {book.id})")
-                print(f"    Цена: {book.price} руб.")
-                print(f"    Описание: {book.description}")
-                print(f"    URL: '{book.url}'")
-                print()
-
-    finally:
-        db.close()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """При старте приложения гарантируем наличие таблиц в БД."""
+    init_db()
+    yield
 
 
-if __name__ == "__main__":
-    display_catalog()
+app = FastAPI(
+    title="Books Catalog API",
+    version="1.0.0",
+    description="API для управления каталогом книг и категорий (FastAPI + SQLAlchemy + PostgreSQL).",
+    lifespan=lifespan,
+)
+
+app.include_router(categories.router)
+app.include_router(books.router)
+
+
+@app.get("/health", tags=["health"])
+def health():
+    """Проверка, что сервис жив."""
+    return {"status": "ok"}
